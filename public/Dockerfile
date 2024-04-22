@@ -1,9 +1,13 @@
-FROM node:16-alpine
+FROM node:16-alpine as nodework
 
 WORKDIR /app
 COPY package*.json ./
 RUN npm install
 COPY . .
-EXPOSE 3000
+RUN npm run build
 
-CMD ["npm","start"]
+FROM nginx:1.23-alpine
+WORKDIR /usr/share/nginx/html
+RUN rm -rf ./*
+COPY --from=nodework /app/build .
+ENTRYPOINT ["nginx", "-g", "daemon off;" ]
