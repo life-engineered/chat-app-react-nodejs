@@ -5,11 +5,26 @@ import Logout from "./Logout";
 import { v4 as uuidv4 } from "uuid";
 import axios from "axios";
 import { sendMessageRoute, recieveMessageRoute } from "../utils/APIRoutes";
+import { ToastContainer, toast } from "react-toastify";
+
+const toastOptions = {
+  position: "bottom-left",
+  autoClose: 2000,
+  pauseOnHover: true,
+  draggable: true,
+  theme: "light",
+};
 
 export default function ChatContainer({ currentChat, socket }) {
   const [messages, setMessages] = useState([]);
   const scrollRef = useRef();
+  const [startApiCalls, setStartApiCalls] = useState(false);
   const [arrivalMessage, setArrivalMessage] = useState(null);
+  const apiCallTimerRef = useRef(null);
+
+  const currentUser = JSON.parse(
+      localStorage.getItem(process.env.REACT_APP_LOCALHOST_KEY)
+  );
 
   useEffect(async () => {
     const data = await JSON.parse(
@@ -69,6 +84,57 @@ export default function ChatContainer({ currentChat, socket }) {
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  const fetchTopics = async (transcripts) => {
+    try {
+      const response = await fetch('http://localhost:8000/getTopic', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ transcript: transcripts })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const newTopic = [...new Set(data.data.map(el => el.prediction))];
+      console.log('Topics fetched:', newTopic);
+
+      return newTopic;
+    } catch (error) {
+      console.error('Failed to fetch data:', error);
+      return []; // Return an empty array or appropriate error indicator
+    }
+  };
+
+  function initApiCalls() {
+    if (!startApiCalls) {
+      apiCallTimerRef.current = setTimeout(async () => {
+        setStartApiCalls(true);
+        console.log(messages);
+        if (messages.length > 0) {
+          const last5messages = messages.filter(el => !el.fromSelf).slice(-5).map(el => el.message);
+
+          const topics = await fetchTopics(last5messages);
+          topics.map(topic => toast.success(topic, toastOptions))
+          initApiCalls(); // Recursively call to continue the sequence
+        } else {
+          if (apiCallTimerRef.current) {
+            clearTimeout(apiCallTimerRef.current);
+            apiCallTimerRef.current = null;
+          }
+          setStartApiCalls(false);
+        }
+      }, 5000);
+    } else {
+      if (apiCallTimerRef.current) {
+        clearTimeout(apiCallTimerRef.current);
+        apiCallTimerRef.current = null;
+      }
+      setStartApiCalls(false);
+    }
+  }
+
   return (
     <Container>
       <div className="chat-header">
@@ -83,7 +149,18 @@ export default function ChatContainer({ currentChat, socket }) {
             <h3>{currentChat.username}</h3>
           </div>
         </div>
-        <Logout />
+        <div className="actions">
+
+          {currentUser.username === 'fa' && (<div>
+            <Button onClick={initApiCalls}>
+              {!startApiCalls ? 'Start Detecting Topics' : 'Stop Detecting Topics'}
+            </Button>
+          </div>)}
+
+          <div>
+            <Logout/>
+          </div>
+        </div>
       </div>
       <div className="chat-messages">
         {messages.map((message) => {
@@ -103,7 +180,9 @@ export default function ChatContainer({ currentChat, socket }) {
         })}
       </div>
       <ChatInput handleSendMsg={handleSendMsg} />
+      <ToastContainer />
     </Container>
+
   );
 }
 
@@ -133,6 +212,15 @@ const Container = styled.div`
         h3 {
           color: white;
         }
+      }
+    }
+    .actions {
+      display: flex; 
+      justify-content: space-between; 
+      align-content: center; 
+      align-items: center;
+      div {
+        padding: 0 4px;
       }
     }
   }
@@ -177,5 +265,20 @@ const Container = styled.div`
         background-color: #9900ff20;
       }
     }
+  }
+`;
+
+const Button = styled.button`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  background-color: #9a86f3;
+  border: none;
+  cursor: pointer;
+  svg {
+    font-size: 1.3rem;
+    color: #ebe7ff;
   }
 `;
