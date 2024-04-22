@@ -9,7 +9,7 @@ import { ToastContainer, toast } from "react-toastify";
 
 const toastOptions = {
   position: "bottom-left",
-  autoClose: 2000,
+  autoClose: 5000,
   pauseOnHover: true,
   draggable: true,
   theme: "light",
