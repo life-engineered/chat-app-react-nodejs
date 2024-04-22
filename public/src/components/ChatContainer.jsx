@@ -4,7 +4,7 @@ import ChatInput from "./ChatInput";
 import Logout from "./Logout";
 import { v4 as uuidv4 } from "uuid";
 import axios from "axios";
-import { sendMessageRoute, recieveMessageRoute } from "../utils/APIRoutes";
+import {sendMessageRoute, recieveMessageRoute, getTopic} from "../utils/APIRoutes";
 import { ToastContainer, toast } from "react-toastify";
 
 const toastOptions = {
@@ -86,7 +86,7 @@ export default function ChatContainer({ currentChat, socket }) {
 
   const fetchTopics = async (transcripts) => {
     try {
-      const response = await fetch('http://localhost:8000/getTopic', {
+      const response = await fetch(getTopic, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ transcript: transcripts })
