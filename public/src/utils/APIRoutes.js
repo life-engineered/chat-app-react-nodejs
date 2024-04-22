@@ -1,4 +1,4 @@
-const baseDomain = "http://localhost:";
+const baseDomain = "http://localhost";
 
 export const host = `${baseDomain}:5000`;
 export const loginRoute = `${host}/api/auth/login`;
